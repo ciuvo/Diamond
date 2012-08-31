@@ -18,8 +18,8 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC=diamond
 NAME=diamond
 DAEMON=/usr/bin/diamond
-DAEMON_ARGS="-p /var/run/diamond.pid"
-PIDFILE=/var/run/diamond.pid
+DAEMON_ARGS="-p /var/run/diamond/diamond.pid"
+PIDFILE=/var/run/diamond/diamond.pid
 SCRIPTNAME=/etc/init.d/diamond
 
 # Exit if the package is not installed
