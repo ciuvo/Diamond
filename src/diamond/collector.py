@@ -38,27 +38,80 @@ class Collector(object):
 
         # Initialize config
         self.config = configobj.ConfigObj()
-        # Merge default Collector config
-        self.config.merge(config['collectors']['default'])
+        
         # Check if default config is defined
         if self.get_default_config() is not None:
             # Merge default config
             self.config.merge(self.get_default_config())
+            
+        # Merge default Collector config
+        self.config.merge(config['collectors']['default'])
+        
         # Check if Collector config section exists
         if cls.__name__ in config['collectors']:
             # Merge Collector config section
             self.config.merge(config['collectors'][cls.__name__])
+            
         # Check for config file in config directory
         configfile = os.path.join(config['server']['collectors_config_path'], cls.__name__) + '.conf'
         if os.path.exists(configfile):
             # Merge Collector config file
             self.config.merge(configobj.ConfigObj(configfile))
+            
+        # Handle some config file changes transparently
+        if isinstance(self.config['byte_unit'], basestring):
+            units = self.config['byte_unit'].split()
+            self.config['byte_unit'] = []
+            for unit in units:
+                self.config['byte_unit'].append(unit)
+
+    def get_default_config_help(self):
+        """
+        Returns the help text for the configuration options for this collector
+        """
+        return {
+            'enabled'   : 'Enable collecting these metrics',
+            'byte_unit' : 'Default numeric output(s)',
+        }
 
     def get_default_config(self):
         """
         Return the default config for the collector
         """
-        return {}
+        return {
+            ### Defaults options for all Collectors
+            
+            # Uncomment and set to hardcode a hostname for the collector path
+            # Keep in mind, periods are seperators in graphite
+            # 'hostname': 'my_custom_hostname',
+            
+            # If you perfer to just use a different way of calculating the hostname
+            # Uncomment and set this to one of these values:
+            # fqdn_short  = Default. Similar to hostname -s
+            # fqdn        = hostname output
+            # fqdn_rev    = hostname in reverse (com.example.www)
+            # uname_short = Similar to uname -n, but only the first part
+            # uname_rev   = uname -r in reverse (com.example.www)
+            # 'hostname_method': 'fqdn_short',
+            
+            # All collectors are disabled by default
+            'enabled': False,
+            
+            # Path Prefix
+            'path_prefix': 'servers',
+            
+            # Default splay time (seconds)
+            'splay': 1,
+            
+            # Default Poll Interval (seconds)
+            'interval': 300,
+            
+            # Default collector threading model
+            'method': 'Sequential',
+            
+            # Default numeric output
+            'byte_unit': 'byte',
+        }
 
     def get_schedule(self):
         """
@@ -72,6 +125,8 @@ class Collector(object):
             return self.config['hostname']
         if 'hostname_method' not in self.config or self.config['hostname_method'] == 'fqdn_short':
             return socket.getfqdn().split('.')[0]
+        if self.config['hostname_method'] == 'fqdn':
+            return socket.getfqdn().replace('.','_')
         if self.config['hostname_method'] == 'fqdn_rev':
             hostname = socket.getfqdn().split('.')
             hostname.reverse()
@@ -84,7 +139,9 @@ class Collector(object):
             hostname.reverse()
             hostname = '.'.join(hostname)
             return hostname
-        raise NotImplementedError()
+        if self.config['hostname_method'].lower() == 'none':
+            return None
+        raise NotImplementedError(self.config['hostname_method'])
 
     def get_metric_path(self, name):
         """
@@ -94,8 +151,10 @@ class Collector(object):
             prefix = self.config['path_prefix']
         else:
             prefix = 'systems'
-            
+
         hostname = self.get_hostname()
+        if hostname is not None:
+            prefix = prefix + "." + hostname
 
         if 'path' in self.config:
             path = self.config['path']
@@ -103,9 +162,9 @@ class Collector(object):
             path = self.__class__.__name__
 
         if path == '.':
-            return '.'.join([prefix, hostname, name])
+            return '.'.join([prefix, name])
         else:
-            return '.'.join([prefix, hostname, path, name])
+            return '.'.join([prefix, path, name])
 
     def collect(self):
         """

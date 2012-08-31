@@ -8,7 +8,6 @@
 # Short-Description: System statistics collector for Graphite.
 # Description:       Diamond is a daemon and toolset for gathering system statistics
 #                    and publishing them to Graphite.
-
 ### END INIT INFO
 
 # Author: Ivan Pouzyrevsky <sandello@yandex-team.ru>
@@ -21,6 +20,7 @@ DAEMON=/usr/bin/diamond
 DAEMON_ARGS="-p /var/run/diamond/diamond.pid"
 PIDFILE=/var/run/diamond/diamond.pid
 SCRIPTNAME=/etc/init.d/diamond
+CONF=/etc/diamond/diamond.conf
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -28,12 +28,19 @@ SCRIPTNAME=/etc/init.d/diamond
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 
+# Checking for a config file in place
+if [  ! -e $CONF ]; then
+   echo "/etc/diamond/diamond.conf not found. Please see /etc/diamond/diamond.conf.example" 
+   exit 2
+fi
+
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
 
 # Define LSB log_* functions.
 # Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
 . /lib/lsb/init-functions
+
 
 #
 # Function that starts the daemon/service
@@ -113,6 +120,11 @@ case "$1" in
   status)
     status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
     ;;
+  reload|force-reload)
+    log_daemon_msg "Reloading $DESC" "$NAME"
+    do_reload
+    log_end_msg $?
+    ;;
   restart)
     log_daemon_msg "Restarting $DESC" "$NAME"
     do_stop
@@ -132,7 +144,7 @@ case "$1" in
     esac
     ;;
   *)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart}" >&2
+    echo "Usage: $SCRIPTNAME {start|stop|status|restart|reload|force-reload}" >&2
     exit 3
     ;;
 esac
