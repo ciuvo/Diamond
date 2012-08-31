@@ -23,6 +23,8 @@ case "$1" in
         if ! getent passwd diamond >/dev/null; then
             adduser --quiet --system --no-create-home --home /var/log/diamond --shell /usr/sbin/nologin diamond
             addgroup diamond
+            chown diamond:diamond /var/run/diamond
+            chown diamond:diamond /var/log/diamond
         fi
     ;;
 
