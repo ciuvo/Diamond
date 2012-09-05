@@ -29,6 +29,13 @@ def nested_itemgetter(dict_, key):
     return val
 
 
+def split_list(token_string):
+    """Split a list of colon seperated tokens. """
+    tokens = filter(None, (t.strip() for
+                           t in token_string.split(',')))
+    return tokens
+
+
 class HTTPRabbitMQCollector(diamond.collector.Collector):
     """A simple rabbitmq collector that uses the HTTP mgmt API."""
 
@@ -73,9 +80,10 @@ class HTTPRabbitMQCollector(diamond.collector.Collector):
                 config['url'] = "http://%(host)s:%(port)s/api/queues" % config
                 config['auth'] = ('%(user)s' % config,
                                   '%(password)s' % config)
-                metrics = filter(None, (m.strip() for
-                                        m in config['metrics'].split(',')))
+                metrics = split_list(config['metrics'])
+                queues = split_list(config['queues'])
                 config['metrics'] = frozenset(metrics)
+                config['queues'] = frozenset(queues)
 
             # get stats from HTTP API
             r = requests.get(config['url'], auth=config['auth'],
