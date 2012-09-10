@@ -49,7 +49,7 @@ class HTTPRabbitMQCollector(diamond.collector.Collector):
             'user': 'Username',
             'password': 'Password',
             'queues': 'Queues to monitor; if None monitor all (default None)',
-            'metric': 'Metrics to extract from each queue.',
+            'metrics': 'Metrics to extract from each queue.',
 
         })
         return config_help
